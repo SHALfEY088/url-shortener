@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/SHALfEY088/url-shortener/internal/config"
 	"github.com/SHALfEY088/url-shortener/internal/lib/logger/handlers/slogpretty"
+	"github.com/SHALfEY088/url-shortener/internal/lib/logger/sl"
+	"github.com/SHALfEY088/url-shortener/internal/storage/sqlite"
 	"log/slog"
 	"os"
 )
@@ -28,7 +30,13 @@ func main() {
 	)
 	log.Debug("debug messages are enabled")
 
-	// TODO: init storage: sqlite
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("failed to init storage", sl.Err(err))
+		os.Exit(1)
+	}
+
+	_ = storage
 
 	// TODO: init router: chi, "chi render"
 
