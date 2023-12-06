@@ -1,9 +1,10 @@
-module github.com/SHALfEY088/url-shortener
+module url-shortener
 
 go 1.21.1
 
 require (
 	github.com/fatih/color v1.16.0
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.18
 )
