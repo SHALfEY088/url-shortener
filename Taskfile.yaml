@@ -1,0 +1,17 @@
+# ./Taskfile.yaml
+# See: https://taskfile.dev/api/
+
+version: "3"
+
+tasks:
+  default: # Задача по умолчанию теперь ссылается на 'run-sso'
+    cmds:
+      - task: run-url-shortener
+
+  run-url-shortener: # Новая задача для запуска программы
+    desc: "Run url-shortener service"
+    cmds:
+      - go run cmd/url-shortener/main.go --config=./config/local.yaml
+
+
+#export CONFIG_PATH=./config/local.yaml - установка пути в переменной окружения
