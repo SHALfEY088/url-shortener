@@ -22,3 +22,4 @@ go.work
 .vscode
 .idea
 /storage/
+config/local.yaml
