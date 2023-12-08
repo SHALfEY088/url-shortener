@@ -21,7 +21,7 @@ type Response struct {
 	resp.Response
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLSaver
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLDeleter
 type URLDeleter interface {
 	DeleteURL(alias string) error
 }
