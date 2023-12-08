@@ -1,42 +1,34 @@
-package save
+package delete
 
 import (
 	"errors"
-	"io"
-	"net/http"
-
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"io"
 	"log/slog"
-
+	"net/http"
 	resp "url-shortener/internal/lib/api/response"
 	"url-shortener/internal/lib/logger/sl"
-	"url-shortener/internal/lib/random"
 	"url-shortener/internal/storage"
 )
 
 type Request struct {
-	URL   string `json:"url" validate:"required,url"`
-	Alias string `json:"alias,omitempty"`
+	Alias string `json:"alias,required"`
 }
 
 type Response struct {
 	resp.Response
-	Alias string `json:"alias,omitempty"`
 }
-
-// TODO: maybe move to config if needed
-const aliasLength = 6
 
 //go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLSaver
-type URLSaver interface {
-	SaveURL(urlToSave string, alias string) (int64, error)
+type URLDeleter interface {
+	DeleteURL(alias string) error
 }
 
-func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
+func New(log *slog.Logger, urlDeleter URLDeleter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.url.save.New"
+		const op = "handlers.url.delete.New"
 
 		log := log.With(
 			slog.String("op", op),
@@ -53,6 +45,7 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			render.JSON(w, r, resp.Error("empty request"))
 			return
 		}
+
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to decode request"))
@@ -70,31 +63,32 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 
 		alias := req.Alias
 		if alias == "" {
-			alias = random.NewRandomString(aliasLength)
+			log.Error("alias is empty")
+			render.JSON(w, r, resp.Error("invalid request: alias is required"))
+			return
 		}
 
-		id, err := urlSaver.SaveURL(req.URL, alias)
-		if errors.Is(err, storage.ErrURLExists) {
-			log.Info("url already exists", slog.String("url", req.URL))
-			render.JSON(w, r, resp.Error("url already exists"))
+		err = urlDeleter.DeleteURL(alias)
+		if errors.Is(err, storage.ErrAliasNotFound) {
+			log.Info("alias not found", "alias", alias)
+			render.JSON(w, r, resp.Error("alias not found"))
 			return
 		}
 
 		if err != nil {
-			log.Error("failed to add url", sl.Err(err))
-			render.JSON(w, r, resp.Error("failed to add url"))
+			log.Error("failed to delete url", "alias", alias, sl.Err(err))
+			render.JSON(w, r, resp.Error("internal error"))
 			return
 		}
 
-		log.Info("url added", slog.Int64("id", id))
+		log.Info("url deleted", "alias", alias)
 
-		responseOK(w, r, alias)
+		responseOK(w, r)
 	}
 }
 
-func responseOK(w http.ResponseWriter, r *http.Request, alias string) {
+func responseOK(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, Response{
 		Response: resp.OK(),
-		Alias:    alias,
 	})
 }
